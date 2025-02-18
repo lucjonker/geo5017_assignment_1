@@ -17,7 +17,7 @@ z = array[:, 2]
 def visualize_position(start, dependent, independent, learning_rate, num_iterations, objective, gradient):
     plt.scatter(independent, dependent)
     f = None
-    coefficients = gradient_descent(start, objective, gradient, learning_rate, num_iterations, dependent, independent)
+    coefficients = gradient_descent(start, dependent, independent, objective, gradient, learning_rate, num_iterations)
     if len(coefficients) == 2:
         a, b = coefficients
         f = [a + (b * val) for val in independent]
@@ -57,9 +57,12 @@ def gradient_func_linear(dependent, independent, coefficients):
     alpha, beta = coefficients
     n = len(independent)
 
-    a = n * alpha + beta * np.sum(independent) - np.sum(dependent)
-    b = alpha * np.sum(independent) + beta * np.sum(np.square(independent)) - np.sum(
-        np.multiply(independent, dependent))
+    a = (n * alpha +
+         beta * np.sum(independent) -
+         np.sum(dependent))
+    b = (alpha * np.sum(independent) +
+         beta * np.sum(np.square(independent)) -
+         np.sum(np.multiply(independent, dependent)))
 
     return np.array([a, b])
 
@@ -92,7 +95,7 @@ def gradient_func_polynomial(dependent, independent, coefficients):
     return np.array([da0, da1, da2])
 
 
-def gradient_descent(start, function, gradient, learn_rate, max_iter, dependent, independent, tol=0.001):
+def gradient_descent(start, dependent, independent, function, gradient, learn_rate, max_iter, tol=0.0001):
     coefficients = np.array(start)
     print("\t\tinitial coefficients =", coefficients, "\t\tf(x) =",
           "{:.3f}".format(function(dependent, independent, coefficients)))
