@@ -9,26 +9,93 @@ array = np.array([[2, 0, 1],
                   [-1.31, -1.51, 2.59],
                   [0.57, -1.91, 4.32]])
 t = [t for t in range(1, len(array) + 1)]
-x = array[:, 0]
-y = array[:, 1]
-z = array[:, 2]
+
+def visualize_positions(start, dependents, independent, learning_rate, num_iterations, objective, gradient):
+    print("Do you want to add a prediction based on the resulting function?")
+
+    options = ["Option 1: Yes", "Option 2: No"]
+    for i, option in enumerate(options, start=1):
+        print(f"{i}. {option}")
+
+    choice = int(input("Enter your choice: "))
+
+    predict = None
+    if choice == 1:
+        predict = input_prediction()
 
 
-def visualize_position(start, dependent, independent, learning_rate, num_iterations, objective, gradient):
-    plt.scatter(independent, dependent)
+    figure, (px,py,pz) = plt.subplots(1, 3, figsize=(5,5), sharey=True)
+    x_dependent = dependents[:, 0]
+    y_dependent = dependents[:, 1]
+    z_dependent = dependents[:, 2]
+
+    # -- Add x
+    visualize_position(px, start, x_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
+    px.set_xlabel("Time (s)")
+    px.set_ylabel("Position (m)")
+    px.set_title("X")
+    px.grid()
+    px.set_axisbelow(True)
+    px.tick_params(labelleft=True)
+
+
+    # -- Add y
+    visualize_position(py, start, y_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
+    py.set_xlabel("Time (s)")
+    py.set_ylabel("Position (m)")
+    py.set_title("Y")
+    py.grid()
+    py.set_axisbelow(True)
+    py.tick_params(labelleft=True)
+
+    # -- Add z
+    visualize_position(pz, start, z_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
+    pz.set_xlabel("Time (s)")
+    pz.set_ylabel("Position (m)")
+    pz.set_title("Z")
+    pz.grid()
+    pz.set_axisbelow(True)
+    pz.tick_params(labelleft=True)
+
+    subtitle = f"Learning rate: {learning_rate}    Max. number of iterations: {num_iterations}"
+    figure.text(0.5, 0.92, subtitle, transform=figure.transFigure, horizontalalignment='center')
+
+    if len(start) == 2:
+        figure.suptitle("Linear regression" ,fontweight='bold', fontsize=20)
+
+    if len(start) == 3:
+        figure.suptitle("Polynomial regression",fontweight='bold', fontsize=20)
+
+
+    plt.show()
+
+
+def visualize_position(plot ,start, dependent, independent, learning_rate, num_iterations, objective, gradient, predict):
+    plot.scatter(independent, dependent)
     f = None
     coefficients = gradient_descent(start, dependent, independent, objective, gradient, learning_rate, num_iterations)
     if len(coefficients) == 2:
         a, b = coefficients
         f = [a + (b * val) for val in independent]
+
+        if predict is not None:
+            prediction = a + (b*predict)
+            plot.scatter(predict, prediction)
+
+
     if len(coefficients) == 3:
         a0, a1, a2 = coefficients
         f = [a0 + (a1 * val) + (a2 * (val ** 2)) for val in independent]
 
+        if predict is not None:
+            prediction = a0 + (a1*predict) + (a2 * (predict**2))
+            plot.scatter(predict, prediction)
+
     if f is not None:
-        plt.plot(independent, f)
-        # Show the plot
-        plt.show()
+        plot.plot(independent, f)
+
+
+
 
 
 def visualize_position_3d(x, y, z):
@@ -157,18 +224,34 @@ def change_num_iter(num_iterations):
     print("Current number of iterations is", num_iterations)
     return int(input("Please enter a new number of iterations (positive int): "))
 
+def input_prediction():
+    prediction = input("Please enter at which timestep you want your prediction (positive int): ")
+
+    try:
+        p = int(prediction)
+
+    except ValueError:
+        print("Please enter a valid value")
+        p = input_prediction()
+
+    return p
+
 
 def run_simple_lr(learning_rate, num_iterations):
     print("Running simple linear regression with learning rate =", learning_rate, ", num_iterations =", num_iterations)
-    for axis in [x, y, z]:
-        visualize_position((1, 1), axis, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
+
+    visualize_positions((1,1), array, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
+    #for axis in [x, y, z]:
+    #    visualize_position((1, 1), axis, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
 
 
 def run_polynomial_r(learning_rate, num_iterations):
     print("Running polynomial regression with learning rate =", learning_rate, ", num_iterations =", num_iterations)
-    for axis in [x, y, z]:
-        visualize_position((1, 1, 1), axis, t, learning_rate, num_iterations, objective_func_polynomial,
-                           gradient_func_polynomial)
+    visualize_positions((1, 1, 1), array, t, learning_rate, num_iterations, objective_func_polynomial, gradient_func_polynomial)
+
+    #for axis in [x, y, z]:
+    #    visualize_position((1, 1, 1), axis, t, learning_rate, num_iterations, objective_func_polynomial,
+    #                       gradient_func_polynomial)
 
 
 if __name__ == "__main__":
