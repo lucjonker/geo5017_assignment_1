@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import false_discovery_control
 
 # Define Global variables
 array = np.array([[2, 0, 1],
@@ -9,6 +10,7 @@ array = np.array([[2, 0, 1],
                   [-1.31, -1.51, 2.59],
                   [0.57, -1.91, 4.32]])
 t = [t for t in range(1, len(array) + 1)]
+
 
 def visualize_positions(start, dependents, independent, learning_rate, num_iterations, objective, gradient):
     print("Do you want to add a prediction based on the resulting function?")
@@ -23,8 +25,7 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     if choice == 1:
         predict = input_prediction()
 
-
-    figure, (px,py,pz) = plt.subplots(1, 3, figsize=(5,5), sharey=True)
+    figure, (px, py, pz) = plt.subplots(1, 3, figsize=(5, 5), sharey=True)
     x_dependent = dependents[:, 0]
     y_dependent = dependents[:, 1]
     z_dependent = dependents[:, 2]
@@ -37,7 +38,6 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     px.grid()
     px.set_axisbelow(True)
     px.tick_params(labelleft=True)
-
 
     # -- Add y
     visualize_position(py, start, y_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
@@ -61,16 +61,16 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     figure.text(0.5, 0.92, subtitle, transform=figure.transFigure, horizontalalignment='center')
 
     if len(start) == 2:
-        figure.suptitle("Linear regression" ,fontweight='bold', fontsize=20)
+        figure.suptitle("Linear regression", fontweight='bold', fontsize=20)
 
     if len(start) == 3:
-        figure.suptitle("Polynomial regression",fontweight='bold', fontsize=20)
-
+        figure.suptitle("Polynomial regression", fontweight='bold', fontsize=20)
 
     plt.show()
 
 
-def visualize_position(plot ,start, dependent, independent, learning_rate, num_iterations, objective, gradient, predict):
+def visualize_position(plot, start, dependent, independent, learning_rate, num_iterations, objective, gradient,
+                       predict):
     plot.scatter(independent, dependent)
     f = None
     coefficients = gradient_descent(start, dependent, independent, objective, gradient, learning_rate, num_iterations)
@@ -79,23 +79,19 @@ def visualize_position(plot ,start, dependent, independent, learning_rate, num_i
         f = [a + (b * val) for val in independent]
 
         if predict is not None:
-            prediction = a + (b*predict)
+            prediction = a + (b * predict)
             plot.scatter(predict, prediction)
-
 
     if len(coefficients) == 3:
         a0, a1, a2 = coefficients
         f = [a0 + (a1 * val) + (a2 * (val ** 2)) for val in independent]
 
         if predict is not None:
-            prediction = a0 + (a1*predict) + (a2 * (predict**2))
+            prediction = a0 + (a1 * predict) + (a2 * (predict ** 2))
             plot.scatter(predict, prediction)
 
     if f is not None:
         plot.plot(independent, f)
-
-
-
 
 
 def visualize_position_3d(x, y, z):
@@ -162,31 +158,53 @@ def gradient_func_polynomial(dependent, independent, coefficients):
     return np.array([da0, da1, da2])
 
 
-def gradient_descent(start, dependent, independent, function, gradient, learn_rate, max_iter, tol=0.0001):
+def gradient_descent(start, dependent, independent, function, gradient, learn_rate, max_iter, tol=0.00001):
     coefficients = np.array(start)
-    print("\t\tinitial coefficients =", coefficients, "\t\tf(x) =",
-          "{:.3f}".format(function(dependent, independent, coefficients)))
+    error = function(dependent, independent, coefficients)
+    print("\t\tinitial coefficients =", coefficients, "\t\tf(x) =", "{:.3f}".format(error))
+
     for it in range(max_iter):
-        gradient_values = gradient(dependent, independent, coefficients)
-        diff = gradient_values * learn_rate
-        if np.all(np.abs(diff) < tol):
+        descent = False
+        tolerance = False
+
+        while not descent:
+            gradient_values = gradient(dependent, independent, coefficients)
+            diff = gradient_values * learn_rate
+            if np.all(np.abs(diff) < tol):
+                print("iteration =", it, "\t\t learn rate =", learn_rate, "\t\tcoefficients =", coefficients,
+                      "\t\tf(x) =",
+                      "{:.3f}".format(function(dependent, independent, coefficients)))
+                tolerance = True
+                break
+
+            new_coefficients = coefficients - diff
+            new_error = function(dependent, independent, new_coefficients)
+
+            if new_error < error:
+                descent = True
+                coefficients = new_coefficients
+            else:
+                learn_rate = learn_rate * 0.25
+
+            print("iteration =", it, "\t\t learn rate =", learn_rate, "\t\tcoefficients =", coefficients, "\t\tf(x) =",
+                  "{:.3f}".format(new_error))
+
+        if tolerance:
             break
-        coefficients = coefficients - diff
-        print("iteration =", it, "\t\tcoefficients =", coefficients, "\t\tf(x) =",
-              "{:.3f}".format(function(dependent, independent, coefficients)))
+
     return coefficients
 
 
 def main():
     options = [
-        "Option 1: Change learning rate",
+        "Option 1: Change initial learning rate",
         "Option 2: Change number of iterations",
         "Option 3: Run Simple linear regression",
         "Option 4: Run Polynomial regression",
         "Option 5: Exit"
     ]
-    learning_rate = 0.001
-    num_iterations = 1000
+    learning_rate = 0.1
+    num_iterations = 10000
 
     while True:
         print("Please select an option by pressing the corresponding number key:")
@@ -216,13 +234,14 @@ def main():
 
 
 def change_learning_rate(learning_rate):
-    print("Current learning rate is", learning_rate)
-    return float(input("Please enter a new learning rate (positive float): "))
+    print("Current initial learning rate is", learning_rate)
+    return float(input("Please enter a new initial learning rate (positive float): "))
 
 
 def change_num_iter(num_iterations):
     print("Current number of iterations is", num_iterations)
     return int(input("Please enter a new number of iterations (positive int): "))
+
 
 def input_prediction():
     prediction = input("Please enter at which timestep you want your prediction (positive int): ")
@@ -238,20 +257,15 @@ def input_prediction():
 
 
 def run_simple_lr(learning_rate, num_iterations):
-    print("Running simple linear regression with learning rate =", learning_rate, ", num_iterations =", num_iterations)
+    print("Running simple linear regression with initial learning rate =", learning_rate, ", num_iterations =", num_iterations)
 
-    visualize_positions((1,1), array, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
-    #for axis in [x, y, z]:
-    #    visualize_position((1, 1), axis, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
+    visualize_positions((1, 1), array, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
 
 
 def run_polynomial_r(learning_rate, num_iterations):
-    print("Running polynomial regression with learning rate =", learning_rate, ", num_iterations =", num_iterations)
-    visualize_positions((1, 1, 1), array, t, learning_rate, num_iterations, objective_func_polynomial, gradient_func_polynomial)
-
-    #for axis in [x, y, z]:
-    #    visualize_position((1, 1, 1), axis, t, learning_rate, num_iterations, objective_func_polynomial,
-    #                       gradient_func_polynomial)
+    print("Running polynomial regression with initial learning rate =", learning_rate, ", num_iterations =", num_iterations)
+    visualize_positions((1, 1, 1), array, t, learning_rate, num_iterations, objective_func_polynomial,
+                        gradient_func_polynomial)
 
 
 if __name__ == "__main__":
