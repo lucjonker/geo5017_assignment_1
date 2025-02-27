@@ -78,6 +78,20 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
 
     plt.show()
 
+    print("Do you want to visualize the path of the drone in 3D?")
+
+    options = ["Option 1: Yes", "Option 2: No"]
+    for i, option in enumerate(options, start=1):
+        print(f"{i}. {option}")
+
+    choice = int(input("Enter your choice: "))
+
+    if predict is not None and choice == 1:
+        visualize_position_3d_prediction(x_dependent, y_dependent, z_dependent, x_predict, y_predict, z_predict)
+
+    elif predict is None and choice == 1:
+        visualize_position_3d(x_dependent, y_dependent, z_dependent)
+
 
 def visualize_position(plot, start, dependent, independent, learning_rate, num_iterations, tol, objective, gradient,
                        predict):
@@ -111,7 +125,22 @@ def visualize_position(plot, start, dependent, independent, learning_rate, num_i
 
         return prediction
 
+def visualize_position_3d_prediction(x, y, z, xp, yp, zp):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(x, y, z)
+    ax.scatter(xp, yp, zp)
 
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    ax.plot(x, y, z, color='r')
+    ax.plot([x[-1],xp], [y[-1],yp], [z[-1],zp], color='orange')
+
+    ax.legend(['Observation', 'Prediction', 'Trend'], loc='upper left')
+    ax.set_title("Trajectory of drone")
+    plt.show()
 
 def visualize_position_3d(x, y, z):
     fig = plt.figure()
@@ -122,10 +151,10 @@ def visualize_position_3d(x, y, z):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    ax.plot(x, y, z)
-
+    ax.plot(x, y, z, color='red')
+    ax.legend(['Observation', 'Trend'], loc='upper left')
+    ax.set_title("Trajectory of drone")
     plt.show()
-
 
 def objective_func_linear(dependent, independent, coefficients):
     alpha, beta = coefficients
