@@ -12,7 +12,7 @@ array = np.array([[2, 0, 1],
 t = [t for t in range(1, len(array) + 1)]
 
 
-def visualize_positions(start, dependents, independent, learning_rate, num_iterations, objective, gradient):
+def visualize_positions(start, dependents, independent, learning_rate, num_iterations, tol, objective, gradient):
     print("Do you want to add a prediction based on the resulting function?")
 
     options = ["Option 1: Yes", "Option 2: No"]
@@ -31,7 +31,9 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     z_dependent = dependents[:, 2]
 
     # -- Add x
-    visualize_position(px, start, x_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
+    print("###################################")
+    print("Calculating coefficients for x axis")
+    x_predict = visualize_position(px, start, x_dependent, independent, learning_rate, num_iterations, tol, objective, gradient, predict)
     px.set_xlabel("Time (s)")
     px.set_ylabel("Position (m)")
     px.set_title("X")
@@ -40,7 +42,9 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     px.tick_params(labelleft=True)
 
     # -- Add y
-    visualize_position(py, start, y_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
+    print("###################################")
+    print("Calculating coefficients for y axis")
+    y_predict = visualize_position(py, start, y_dependent, independent, learning_rate, num_iterations, tol, objective, gradient, predict)
     py.set_xlabel("Time (s)")
     py.set_ylabel("Position (m)")
     py.set_title("Y")
@@ -49,15 +53,21 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     py.tick_params(labelleft=True)
 
     # -- Add z
-    visualize_position(pz, start, z_dependent, independent, learning_rate, num_iterations, objective, gradient, predict)
+    print("###################################")
+    print("Calculating coefficients for z axis")
+    z_predict = visualize_position(pz, start, z_dependent, independent, learning_rate, num_iterations, tol, objective, gradient, predict)
     pz.set_xlabel("Time (s)")
     pz.set_ylabel("Position (m)")
     pz.set_title("Z")
     pz.grid()
     pz.set_axisbelow(True)
     pz.tick_params(labelleft=True)
+    print("###################################")
 
-    subtitle = f"Initial learning rate: {learning_rate}    Max. number of iterations: {num_iterations}"
+    if predict is not None:
+        print(f"Predicted position at time {predict}: [{x_predict}, {y_predict}, {z_predict}]")
+
+    subtitle = f"Initial learning rate: {learning_rate}    Max. number of iterations: {num_iterations}    Gradient tolerance: {tol}"
     figure.text(0.5, 0.92, subtitle, transform=figure.transFigure, horizontalalignment='center')
 
     if len(start) == 2:
@@ -69,11 +79,12 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     plt.show()
 
 
-def visualize_position(plot, start, dependent, independent, learning_rate, num_iterations, objective, gradient,
+def visualize_position(plot, start, dependent, independent, learning_rate, num_iterations, tol, objective, gradient,
                        predict):
     plot.scatter(independent, dependent)
     f = None
-    coefficients = gradient_descent(start, dependent, independent, objective, gradient, learning_rate, num_iterations)
+    prediction = None
+    coefficients = gradient_descent(start, dependent, independent, objective, gradient, learning_rate, num_iterations, tol)
     if len(coefficients) == 2:
         a, b = coefficients
         f = [a + (b * val) for val in independent]
@@ -98,6 +109,7 @@ def visualize_position(plot, start, dependent, independent, learning_rate, num_i
         else:
             plot.legend(['Observation','Trend'], loc='upper left')
 
+        return prediction
 
 
 
@@ -165,10 +177,11 @@ def gradient_func_polynomial(dependent, independent, coefficients):
     return np.array([da0, da1, da2])
 
 
-def gradient_descent(start, dependent, independent, function, gradient, learn_rate, max_iter, tol=0.00001):
+def gradient_descent(start, dependent, independent, function, gradient, learn_rate, max_iter, tol):
     coefficients = np.array(start)
     error = function(dependent, independent, coefficients)
-    print("\t\tinitial coefficients =", coefficients, "\t\tf(x) =", "{:.3f}".format(error))
+    num_iterations = max_iter
+    print("Initial coefficients =", coefficients, "\t\tf(x) =", "{:.3f}".format(error))
 
     for it in range(max_iter):
         descent = False
@@ -178,10 +191,8 @@ def gradient_descent(start, dependent, independent, function, gradient, learn_ra
             gradient_values = gradient(dependent, independent, coefficients)
             diff = gradient_values * learn_rate
             if np.all(np.abs(diff) < tol):
-                print("iteration =", it, "\t\t learn rate =", learn_rate, "\t\tcoefficients =", coefficients,
-                      "\t\tf(x) =",
-                      "{:.3f}".format(function(dependent, independent, coefficients)))
                 tolerance = True
+                num_iterations  = it
                 break
 
             new_coefficients = coefficients - diff
@@ -193,12 +204,14 @@ def gradient_descent(start, dependent, independent, function, gradient, learn_ra
             else:
                 learn_rate = learn_rate * 0.25
 
-            print("iteration =", it, "\t\t learn rate =", learn_rate, "\t\tcoefficients =", coefficients, "\t\tf(x) =",
-                  "{:.3f}".format(new_error))
+            error = new_error
 
         if tolerance:
             break
 
+    print("final iteration =", num_iterations, "\t\t learn rate =", learn_rate, "\t\tcoefficients =", coefficients,
+          "\t\tf(x) =",
+          "{:.3f}".format(function(dependent, independent, coefficients)))
     return coefficients
 
 
@@ -206,15 +219,17 @@ def main():
     options = [
         "Option 1: Change initial learning rate",
         "Option 2: Change number of iterations",
-        "Option 3: Run Simple linear regression",
-        "Option 4: Run Polynomial regression",
-        "Option 5: Exit"
+        "Option 3: Change gradient tolerance",
+        "Option 4: Run Simple linear regression",
+        "Option 5: Run Polynomial regression",
+        "Option 6: Exit"
     ]
     learning_rate = 0.1
+    tol = 0.00001
     num_iterations = 10000
 
     while True:
-        print("Please select an option by pressing the corresponding number key:")
+        print("\nPlease select an option by pressing the corresponding number key:")
         for i, option in enumerate(options, start=1):
             print(f"{i}. {option}")
 
@@ -229,10 +244,12 @@ def main():
             elif choice == 2:
                 num_iterations = change_num_iter(num_iterations)
             elif choice == 3:
-                run_simple_lr(learning_rate, num_iterations)
+                tol = change_gradient_tol(tol)
             elif choice == 4:
-                run_polynomial_r(learning_rate, num_iterations)
+                run_simple_lr(learning_rate, num_iterations, tol)
             elif choice == 5:
+                run_polynomial_r(learning_rate, num_iterations, tol)
+            elif choice == 6:
                 print("Exiting program")
                 break
 
@@ -250,6 +267,10 @@ def change_num_iter(num_iterations):
     return int(input("Please enter a new number of iterations (positive int): "))
 
 
+def change_gradient_tol(tol):
+    print("Current gradient tolerance is", tol)
+    return float(input("Please enter a new gradient tolerance (positive float): "))
+
 def input_prediction():
     prediction = input("Please enter at which timestep you want your prediction (positive int): ")
 
@@ -263,15 +284,15 @@ def input_prediction():
     return p
 
 
-def run_simple_lr(learning_rate, num_iterations):
-    print("Running simple linear regression with initial learning rate =", learning_rate, ", num_iterations =", num_iterations)
+def run_simple_lr(learning_rate, num_iterations, tol):
+    print("Running simple linear regression with initial learning rate =", learning_rate, ", num_iterations =", num_iterations, ", tolerance =", tol)
 
-    visualize_positions((1, 1), array, t, learning_rate, num_iterations, objective_func_linear, gradient_func_linear)
+    visualize_positions((1, 1), array, t, learning_rate, num_iterations, tol, objective_func_linear, gradient_func_linear)
 
 
-def run_polynomial_r(learning_rate, num_iterations):
-    print("Running polynomial regression with initial learning rate =", learning_rate, ", num_iterations =", num_iterations)
-    visualize_positions((1, 1, 1), array, t, learning_rate, num_iterations, objective_func_polynomial,
+def run_polynomial_r(learning_rate, num_iterations, tol):
+    print("Running polynomial regression with initial learning rate =", learning_rate, ", num_iterations =", num_iterations, ", tolerance =", tol)
+    visualize_positions((1, 1, 1), array, t, learning_rate, num_iterations, tol, objective_func_polynomial,
                         gradient_func_polynomial)
 
 
