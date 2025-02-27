@@ -57,7 +57,7 @@ def visualize_positions(start, dependents, independent, learning_rate, num_itera
     pz.set_axisbelow(True)
     pz.tick_params(labelleft=True)
 
-    subtitle = f"Learning rate: {learning_rate}    Max. number of iterations: {num_iterations}"
+    subtitle = f"Initial learning rate: {learning_rate}    Max. number of iterations: {num_iterations}"
     figure.text(0.5, 0.92, subtitle, transform=figure.transFigure, horizontalalignment='center')
 
     if len(start) == 2:
@@ -90,8 +90,15 @@ def visualize_position(plot, start, dependent, independent, learning_rate, num_i
             prediction = a0 + (a1 * predict) + (a2 * (predict ** 2))
             plot.scatter(predict, prediction)
 
+
     if f is not None:
-        plot.plot(independent, f)
+        plot.plot(independent, f, color='r')
+        if predict is not None:
+            plot.legend(['Observation', 'Prediction','Trend'], loc='upper left')
+        else:
+            plot.legend(['Observation','Trend'], loc='upper left')
+
+
 
 
 def visualize_position_3d(x, y, z):
