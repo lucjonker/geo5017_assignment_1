@@ -181,7 +181,7 @@ def gradient_descent(start, dependent, independent, function, gradient, learn_ra
     coefficients = np.array(start)
     error = function(dependent, independent, coefficients)
     num_iterations = max_iter
-    print("Initial coefficients =", coefficients, "\t\tf(x) =", "{:.3f}".format(error))
+    print("Initial coefficients =", coefficients, "\t\t initial learn rate =", learn_rate, "\t\tinitial residual error f(x) =", "{:.3f}".format(error))
 
     for it in range(max_iter):
         descent = False
@@ -210,7 +210,7 @@ def gradient_descent(start, dependent, independent, function, gradient, learn_ra
             break
 
     print("final iteration =", num_iterations, "\t\t learn rate =", learn_rate, "\t\tcoefficients =", coefficients,
-          "\t\tf(x) =",
+          "\t\tfinal residual error f(x) =",
           "{:.3f}".format(function(dependent, independent, coefficients)))
     return coefficients
 
